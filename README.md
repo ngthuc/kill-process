@@ -7,20 +7,20 @@
 </div>
 <br>
 <div align="center">
-  <a href="https://npmjs.org/package/kill-port">
-    <img src="https://img.shields.io/npm/v/kill-port.svg?style=flat-square" alt="Package version" />
+  <a href="https://npmjs.org/package/kill-process">
+    <img src="https://img.shields.io/npm/v/kill-process.svg?style=flat-square" alt="Package version" />
   </a>
-  <a href="https://npmjs.org/package/kill-port">
-    <img src="https://img.shields.io/npm/dm/kill-port.svg?style=flat-square" alt="Downloads" />
+  <a href="https://npmjs.org/package/kill-process">
+    <img src="https://img.shields.io/npm/dm/kill-process.svg?style=flat-square" alt="Downloads" />
   </a>
   <a href="https://github.com/feross/standard">
     <img src="https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat-square" alt="Standard" />
   </a>
-  <a href="https://travis-ci.org/tiaanduplessis/kill-port">
-    <img src="https://img.shields.io/travis/tiaanduplessis/kill-port.svg?style=flat-square" alt="Travis Build" />
+  <a href="https://travis-ci.org/ngthuc/kill-process">
+    <img src="https://img.shields.io/travis/ngthuc/kill-process.svg?style=flat-square" alt="Travis Build" />
   </a>
-  <a href="https://github.com/tiaanduplessis/kill-port/blob/master/LICENSE">
-    <img src="https://img.shields.io/npm/l/kill-port.svg?style=flat-square" alt="License" />
+  <a href="https://github.com/ngthuc/kill-process/blob/master/LICENSE">
+    <img src="https://img.shields.io/npm/l/kill-process.svg?style=flat-square" alt="License" />
   </a>
   <a href="http://makeapullrequest.com">
     <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square" alt="PRs" />
@@ -265,8 +265,8 @@ isolated consumers without external types, does not execute their examples, and
 disables lifecycle scripts while packing.
 
 
-Got an idea for a new feature? Found a bug? Contributions are welcome! Please [open up an issue](https://github.com/tiaanduplessis/feature-flip/issues) or [make a pull request](https://makeapullrequest.com/).
+Got an idea for a new feature? Found a bug? Contributions are welcome! Please [open up an issue](https://github.com/ngthuc/kill-process/issues) or [make a pull request](https://makeapullrequest.com/).
 
 ## License
 
-[MIT © Tiaan du Plessis](./LICENSE)
+[MIT © Lê Nguyên Thức](./LICENSE), based on [kill-port](https://github.com/tiaanduplessis/kill-port) by Tiaan du Plessis
