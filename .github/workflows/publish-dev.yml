@@ -1,0 +1,35 @@
+name: Publish dev build
+
+on:
+  push:
+    branches:
+      - develop
+    paths-ignore:
+      - '.gitnexus/**'
+      - '.claude/**'
+      - '**/*.md'
+      - 'LICENSE'
+      - 'logo.png'
+
+concurrency:
+  group: publish-dev-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: TEST
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: ngthuc/gh-actions-templates/actions/publish-npm@v1
+        with:
+          version-mode: short-sha
+          version-prefix: 1.0.0-dev
+          npm-dist-tag: dev
+          build-kind: dev
+          run-tests: 'true'
