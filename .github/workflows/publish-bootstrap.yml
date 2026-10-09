@@ -1,7 +1,9 @@
 name: Bootstrap first publish (temporary)
 
 # One-off workflow to create the package on npm so a Trusted Publisher can be
-# attached to it. Uses a temporary NPM_TOKEN secret instead of OIDC.
+# attached to it. Publishes the version in package.json as-is, which MUST be
+# 0.0.1 (the workflow fails otherwise). Uses a temporary NPM_TOKEN secret
+# instead of OIDC.
 # After the first publish: add the Trusted Publishers on npmjs.com, then
 # delete the NPM_TOKEN secret, revoke the token, and delete this file.
 
@@ -19,10 +21,35 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - uses: ngthuc/gh-actions-templates/actions/publish-npm@v1
+      - name: Require package.json version 0.0.1
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [ "$VERSION" != "0.0.1" ]; then
+            echo "::error::package.json version is '$VERSION', expected 0.0.1 for the bootstrap publish"
+            exit 1
+          fi
+
+      - name: Load CI config
+        id: cfg
+        run: |
+          {
+            echo "node_version=$(yq '.NODE_VERSION // "22"' .github-ci.yml)"
+            echo "build_commands=$(yq '.DEV_BUILD_COMMANDS' .github-ci.yml)"
+            echo "test_commands=$(yq '.TEST_RUN_COMMANDS // ""' .github-ci.yml)"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
         with:
-          version-mode: short-sha
-          version-prefix: 1.0.0-dev
-          npm-dist-tag: dev
-          build-kind: dev
-          run-tests: 'true'
+          node-version: ${{ steps.cfg.outputs.node_version }}
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Run tests
+        if: steps.cfg.outputs.test_commands != ''
+        run: ${{ steps.cfg.outputs.test_commands }}
+
+      - name: Build
+        run: ${{ steps.cfg.outputs.build_commands }}
+
+      - name: Publish 0.0.1 to npm
+        working-directory: dist
+        run: npm publish --access public --tag bootstrap
