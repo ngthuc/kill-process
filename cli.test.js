@@ -1,6 +1,7 @@
 /* eslint-env jest */
 // Exercise the real argument parser, but never run a process-killing command.
 jest.mock('./', () => jest.fn())
+jest.mock('./intellij', () => ({ cli: jest.fn() }))
 
 const argv = process.argv
 let kill
@@ -102,4 +103,23 @@ test('keeps failures visible when another port succeeds in quiet mode', async ()
   expect(log.mock.calls).toEqual([
     ['Could not kill process on port 3000. No process running on port.']
   ])
+})
+
+test.each([
+  [['intellij'], []],
+  [['intellij', '--dry-run'], ['--dry-run']],
+  [['intellij', '--signal', 'SIGTERM', '--timeout', '3'], ['--signal', 'SIGTERM', '--timeout', '3']]
+])('dispatches the intellij command without treating it as a port: %p', async (args, forwarded) => {
+  await run(args)
+  expect(require('./intellij').cli.mock.calls).toEqual([[forwarded]])
+  expect(kill).not.toHaveBeenCalled()
+})
+
+test('intellij is only a command in the first position; elsewhere it is an invalid port', async () => {
+  await run(['3000', 'intellij'])
+  expect(require('./intellij').cli).not.toHaveBeenCalled()
+  expect(kill).not.toHaveBeenCalled()
+  expect(log).toHaveBeenCalledWith(expect.stringContaining('Invalid port selection'))
+  expect(process.exitCode).toBe(1)
+  process.exitCode = exitCode
 })

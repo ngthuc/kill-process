@@ -1,4 +1,4 @@
 NODE_VERSION: "22"
-DEV_BUILD_COMMANDS: "npm install --no-package-lock && mkdir -p dist && cp package.json index.js index.d.ts cli.js ports.js signal.js README.md LICENSE logo.png dist/"
-PROD_BUILD_COMMANDS: "npm install --no-package-lock && mkdir -p dist && cp package.json index.js index.d.ts cli.js ports.js signal.js README.md LICENSE logo.png dist/"
+DEV_BUILD_COMMANDS: "npm install --no-package-lock && mkdir -p dist && cp package.json index.js index.d.ts cli.js ports.js signal.js intellij.js README.md LICENSE logo.png dist/"
+PROD_BUILD_COMMANDS: "npm install --no-package-lock && mkdir -p dist && cp package.json index.js index.d.ts cli.js ports.js signal.js intellij.js README.md LICENSE logo.png dist/"
 TEST_RUN_COMMANDS: "npm install --no-package-lock && npm test"

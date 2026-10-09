@@ -3,7 +3,7 @@
 </div>
 <h1 align="center">kill-process</h1>
 <div align="center">
-  <strong>Kill process running on given port</strong>
+  <strong>Kill the process running on a given port, or a frozen IntelliJ IDEA</strong>
 </div>
 <br>
 <div align="center">
@@ -15,9 +15,6 @@
   </a>
   <a href="https://github.com/feross/standard">
     <img src="https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat-square" alt="Standard" />
-  </a>
-  <a href="https://travis-ci.org/ngthuc/kill-process">
-    <img src="https://img.shields.io/travis/ngthuc/kill-process.svg?style=flat-square" alt="Travis Build" />
   </a>
   <a href="https://github.com/ngthuc/kill-process/blob/master/LICENSE">
     <img src="https://img.shields.io/npm/l/@ngthuc/kill-process.svg?style=flat-square" alt="License" />
@@ -36,6 +33,11 @@
 - [TypeScript](#typescript)
 - [API](#api)
 - [CLI](#cli)
+  - [Exact port matching](#exact-port-matching)
+  - [Port ranges](#port-ranges)
+  - [Signal selection](#signal-selection)
+  - [Frozen IntelliJ IDEA](#frozen-intellij-idea)
+- [Migrating from kill-port](#migrating-from-kill-port)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -211,6 +213,13 @@ $ npx @ngthuc/kill-process --port 8080,5000,3000
 $ npx @ngthuc/kill-process 9000 3000 5000
 ```
 
+### Exact port matching
+
+A port is matched exactly: `kill-process 8000` stops only what listens on port
+8000, never `28000`, `8001` or `18000`. Only listening sockets (TCP) or sockets
+bound to that local port (UDP) are selected, so clients that are merely connected
+to the port are left alone.
+
 ### Port ranges
 
 The CLI accepts inclusive, ascending ranges in positional arguments or `--port`:
@@ -255,6 +264,49 @@ Windows continues to use `TaskKill /F` for the default or explicit `SIGKILL`.
 Other signals reject with `Only SIGKILL is supported on Windows`; they are never
 silently replaced by forced termination. `TaskKill` cannot deliver the Unix
 signal semantics requested here.
+
+### Frozen IntelliJ IDEA
+
+When IntelliJ IDEA has crashed or hangs and cannot be quit, close it and start again:
+
+```sh
+$ kill-process intellij
+# OR without installing
+$ npx @ngthuc/kill-process intellij
+```
+
+It first asks the IDE to exit (`SIGTERM`), waits up to 5 seconds, then force kills
+(`SIGKILL`) whatever is still running. Options:
+
+```sh
+$ kill-process intellij --dry-run          # only list what would be killed
+$ kill-process intellij --timeout 10       # wait 10 seconds before forcing
+$ kill-process intellij --signal SIGKILL   # send this signal once, no waiting or escalation
+```
+
+Only IntelliJ IDEA is targeted: the IDE itself plus the helpers it runs from its
+own install directory (`fsnotifier`, the JCEF helpers, ...), which can outlive a
+crashed IDE. Other JetBrains IDEs (PyCharm, WebStorm, ...) and unrelated
+processes are left running. Unsaved changes in a killed IDE are lost, so use
+this only when the IDE cannot be closed normally. Process detection on macOS and
+Windows is based on the launcher name rather than the JVM command line; run with
+`--dry-run` first if in doubt. On Windows the IDE is always force terminated.
+
+## Migrating from kill-port
+
+This project started as a fork of [kill-port](https://github.com/tiaanduplessis/kill-port)
+by Tiaan du Plessis and keeps its behaviour for ports. What changed:
+
+| | kill-port | @ngthuc/kill-process |
+|---|---|---|
+| Package | `kill-port` | `@ngthuc/kill-process` |
+| Command | `kill-port 3000` | `kill-process 3000` |
+| `npx` | `npx kill-port 3000` | `npx @ngthuc/kill-process 3000` |
+| JavaScript | `require('kill-port')` | `require('@ngthuc/kill-process')` |
+
+The API and the port options are unchanged. New: the `intellij` command (see
+[Frozen IntelliJ IDEA](#frozen-intellij-idea)). Uninstall the old package and its
+types (`npm uninstall kill-port @types/kill-port`) before switching.
 
 ## Contributing
 
