@@ -280,8 +280,10 @@ $ kill-process intellij --timeout 10       # wait 10 seconds before forcing
 $ kill-process intellij --signal SIGKILL   # send this signal once, no waiting or escalation
 ```
 
-Only IntelliJ IDEA processes are targeted; other JetBrains IDEs (PyCharm,
-WebStorm, ...) are left running. Unsaved changes in a killed IDE are lost, so use
+Only IntelliJ IDEA is targeted: the IDE itself plus the helpers it runs from its
+own install directory (`fsnotifier`, the JCEF helpers, ...), which can outlive a
+crashed IDE. Other JetBrains IDEs (PyCharm, WebStorm, ...) and unrelated
+processes are left running. Unsaved changes in a killed IDE are lost, so use
 this only when the IDE cannot be closed normally. Process detection on macOS and
 Windows is based on the launcher name rather than the JVM command line; run with
 `--dry-run` first if in doubt. On Windows the IDE is always force terminated.

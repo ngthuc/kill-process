@@ -2,6 +2,9 @@
 // Never list or signal real processes in the test suite.
 jest.mock('shell-exec', () => jest.fn(), { virtual: true })
 
+const fs = require('fs')
+const os = require('os')
+const path = require('path')
 const sh = require('shell-exec')
 const { isIntelliJ, killIntelliJ, cli } = require('./intellij')
 const platform = Object.getOwnPropertyDescriptor(process, 'platform')
@@ -187,5 +190,88 @@ describe('cli', () => {
     const kill = jest.spyOn(process, 'kill').mockImplementation(() => {})
     await cli(['--signal=SIGINT', '--timeout=1'])
     expect(kill).toHaveBeenCalledWith(101, 'SIGINT')
+  })
+})
+
+describe('native launcher installs (IntelliJ IDEA 2025+)', () => {
+  let root
+  let install
+  const ps = lines => result(lines.map(([pid, command]) => `${pid} ${command}`).join('\n'))
+  const idea = () => `${install}/bin/idea`
+  const helpers = () => [
+    [102, `${install}/bin/fsnotifier`],
+    [103, `${install}/plugins/jcef-plugin/jcef/cef_server --type=renderer --user-data-dir=/home/u/.cache/JetBrains/IntelliJIdea2026.2/jcef_cache`]
+  ]
+
+  beforeEach(() => {
+    Object.defineProperty(process, 'platform', { value: 'linux' })
+    root = fs.mkdtempSync(path.join(os.tmpdir(), 'kill-process-idea-'))
+    install = path.join(root, 'Toolbox/apps/intellij-idea-ultimate')
+    fs.mkdirSync(path.join(install, 'bin'), { recursive: true })
+    fs.writeFileSync(path.join(install, 'product-info.json'), '{"name":"IntelliJ IDEA","productCode":"IU"}')
+    sh.mockReset()
+  })
+  afterEach(() => fs.rmSync(root, { recursive: true, force: true }))
+
+  test('recognises the launcher and its helpers from the install directory', async () => {
+    sh.mockResolvedValue(ps([[101, idea()], ...helpers(), [900, '/bin/bash'], [901, '/usr/bin/vim notes.txt'],
+      [902, '/usr/lib/jvm/java-21/bin/java -Xmx700m -Djna.nosys=true MavenServer']]))
+    const { found } = await killIntelliJ({ dryRun: true })
+    expect(found.map(p => p.pid)).toEqual([101, 102, 103])
+  })
+
+  test('recognises the launcher through a symlinked install directory (Toolbox)', async () => {
+    const real = path.join(root, 'real-261')
+    fs.renameSync(install, real)
+    fs.symlinkSync(real, install)
+    expect(isIntelliJ(idea(), 'linux')).toBe(true)
+    sh.mockResolvedValue(ps([[101, idea()], [102, `${real}/bin/fsnotifier`], [103, `${install}/bin/fsnotifier`]]))
+    const { found } = await killIntelliJ({ dryRun: true })
+    expect(found.map(p => p.pid)).toEqual([101, 102, 103])
+  })
+
+  test('accepts an install without product-info.json only if its name says IntelliJ IDEA', () => {
+    fs.rmSync(path.join(install, 'product-info.json'))
+    expect(isIntelliJ(idea(), 'linux')).toBe(true)
+    const other = path.join(root, 'bin-only')
+    fs.mkdirSync(path.join(other, 'bin'), { recursive: true })
+    expect(isIntelliJ(`${other}/bin/idea`, 'linux')).toBe(false)
+  })
+
+  test.each([
+    ['another JetBrains product', '{"name":"PyCharm"}'],
+    ['an unreadable product-info.json', '{not json']
+  ])('does not treat %s as IntelliJ IDEA', (name, content) => {
+    fs.writeFileSync(path.join(install, 'product-info.json'), content)
+    expect(isIntelliJ(idea(), 'linux')).toBe(false)
+  })
+
+  test('a stray bin/idea never makes its parent directory "the IDE"', async () => {
+    const stray = path.join(root, 'usr-local')
+    fs.mkdirSync(path.join(stray, 'bin'), { recursive: true })
+    sh.mockResolvedValue(ps([[101, `${stray}/bin/idea`], [102, `${stray}/bin/something-else`]]))
+    const { found } = await killIntelliJ({ dryRun: true })
+    expect(found).toEqual([])
+  })
+
+  test('does not match a shell that merely mentions the launcher path', async () => {
+    sh.mockResolvedValue(ps([[900, `/bin/bash -c ${idea()}`], [901, `vim ${idea()}`]]))
+    const { found } = await killIntelliJ({ dryRun: true })
+    expect(found).toEqual([])
+  })
+
+  test('still force kills a helper that outlives the main process', async () => {
+    let alive = [[101, idea()], ...helpers()]
+    sh.mockImplementation(async () => ps(alive))
+    const signals = []
+    jest.spyOn(process, 'kill').mockImplementation((pid, signal) => {
+      signals.push([pid, signal])
+      // The launcher and fsnotifier exit on SIGTERM; the JCEF helper ignores it.
+      if (signal === 'SIGKILL' || pid !== 103) alive = alive.filter(([p]) => p !== pid)
+    })
+    const res = await killIntelliJ({ timeout: 0 })
+    expect(res.forced).toEqual([103])
+    expect(signals).toContainEqual([103, 'SIGKILL'])
+    expect(res.remaining).toEqual([])
   })
 })
