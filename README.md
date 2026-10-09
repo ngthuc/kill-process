@@ -1,17 +1,17 @@
 <div align="center">
   <img src="./logo.png" alt="Logo" width="500px">
 </div>
-<h1 align="center">kill-port</h1>
+<h1 align="center">kill-process</h1>
 <div align="center">
   <strong>Kill process running on given port</strong>
 </div>
 <br>
 <div align="center">
-  <a href="https://npmjs.org/package/kill-process">
-    <img src="https://img.shields.io/npm/v/kill-process.svg?style=flat-square" alt="Package version" />
+  <a href="https://npmjs.org/package/@ngthuc/kill-process">
+    <img src="https://img.shields.io/npm/v/@ngthuc/kill-process.svg?style=flat-square" alt="Package version" />
   </a>
-  <a href="https://npmjs.org/package/kill-process">
-    <img src="https://img.shields.io/npm/dm/kill-process.svg?style=flat-square" alt="Downloads" />
+  <a href="https://npmjs.org/package/@ngthuc/kill-process">
+    <img src="https://img.shields.io/npm/dm/@ngthuc/kill-process.svg?style=flat-square" alt="Downloads" />
   </a>
   <a href="https://github.com/feross/standard">
     <img src="https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat-square" alt="Standard" />
@@ -20,7 +20,7 @@
     <img src="https://img.shields.io/travis/ngthuc/kill-process.svg?style=flat-square" alt="Travis Build" />
   </a>
   <a href="https://github.com/ngthuc/kill-process/blob/master/LICENSE">
-    <img src="https://img.shields.io/npm/l/kill-process.svg?style=flat-square" alt="License" />
+    <img src="https://img.shields.io/npm/l/@ngthuc/kill-process.svg?style=flat-square" alt="License" />
   </a>
   <a href="http://makeapullrequest.com">
     <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square" alt="PRs" />
@@ -44,17 +44,17 @@
 
 With `npm`:
 ```sh
-npm install --save kill-port
+npm install --save @ngthuc/kill-process
 ```
 
 With `yarn`:
 ```sh
-yarn add kill-port
+yarn add @ngthuc/kill-process
 ```
 
 With `pnpm`:
 ```sh
-pnpm add kill-port
+pnpm add @ngthuc/kill-process
 ```
 
 ### Linux and containers
@@ -64,7 +64,7 @@ utility on `PATH`, with support for `-nP` and `-i` and its standard network
 output. Minimal Linux images may omit it. The BusyBox `lsof` applet uses a
 different output format and is not a compatible replacement.
 
-For an existing kill-port installation or source checkout, add your distribution's
+For an existing kill-process installation or source checkout, add your distribution's
 `lsof` package to the image that runs it. For example, in an Alpine Dockerfile:
 
 ```dockerfile
@@ -93,7 +93,7 @@ If a call fails:
 
 ```js
 
-const kill = require('kill-port')
+const kill = require('@ngthuc/kill-process')
 const http = require('http')
 const port = 8080
 
@@ -133,7 +133,7 @@ have no dependency on `shell-exec` types or `@types/node`.
 Use a CommonJS import:
 
 ```ts
-import killPort = require('kill-port')
+import killPort = require('@ngthuc/kill-process')
 
 killPort('3000', 'TCP', 'SIGTERM').then(result => {
   console.log(result.stdout)
@@ -143,7 +143,7 @@ killPort('3000', 'TCP', 'SIGTERM').then(result => {
 With `esModuleInterop: true`, a default import also works:
 
 ```ts
-import killPort from 'kill-port'
+import killPort from '@ngthuc/kill-process'
 ```
 
 ## API
@@ -162,53 +162,53 @@ process has exited.
 
 ## CLI
 
-You can use `kill-port` as a global package.
+You can use `kill-process` as a global package.
 
 Install the package globally:
 
 ```sh
-$ npm install --global kill-port
+$ npm install --global @ngthuc/kill-process
 # OR
-$ yarn global add kill-port
+$ yarn global add @ngthuc/kill-process
 ```
 
 Then:
 
 ```sh
-$ kill-port --port 8080
+$ kill-process --port 8080
 # OR
-$ kill-port 9000
+$ kill-process 9000
 # OR you can use UDP
-$ kill-port 9000 --method udp
+$ kill-process 9000 --method udp
 ```
 
 You can also kill multiple ports:
 
 ```sh
-$ kill-port --port 8080,5000,3000
+$ kill-process --port 8080,5000,3000
 # OR
-$ kill-port 9000 3000 5000
+$ kill-process 9000 3000 5000
 ```
 
 Use `--quiet` to suppress success messages (including verbose success details).
 Errors are still reported, and exit behavior is unchanged:
 
 ```sh
-$ kill-port --quiet 9000
-$ kill-port --port 8080,5000,3000 --quiet
+$ kill-process --quiet 9000
+$ kill-process --port 8080,5000,3000 --quiet
 ```
 
-You can also use [npx](https://nodejs.dev/learn/the-npx-nodejs-package-runner) to `kill-port` without installing:
+You can also use [npx](https://nodejs.dev/learn/the-npx-nodejs-package-runner) to `kill-process` without installing:
 
 ```sh
 # Kill a single port
-$ npx kill-port --port 8080
-$ npx kill-port 8080
+$ npx @ngthuc/kill-process --port 8080
+$ npx @ngthuc/kill-process 8080
 # Use UDP
-$ npx kill-port 9000 --method udp
+$ npx @ngthuc/kill-process 9000 --method udp
 # Kill multiple ports
-$ npx kill-port --port 8080,5000,3000
-$ npx kill-port 9000 3000 5000
+$ npx @ngthuc/kill-process --port 8080,5000,3000
+$ npx @ngthuc/kill-process 9000 3000 5000
 ```
 
 ### Port ranges
@@ -216,10 +216,10 @@ $ npx kill-port 9000 3000 5000
 The CLI accepts inclusive, ascending ranges in positional arguments or `--port`:
 
 ```sh
-$ kill-port 3000-3005
-$ kill-port --port 3000-3005
-$ kill-port 3000,4000-4002 5000-5001
-$ kill-port --quiet --port 3000-3005 --method udp
+$ kill-process 3000-3005
+$ kill-process --port 3000-3005
+$ kill-process 3000,4000-4002 5000-5001
+$ kill-process --quiet --port 3000-3005 --method udp
 ```
 
 Every port and range endpoint must be an integer between 1 and 65535. Reversed,
@@ -236,13 +236,13 @@ On Unix-like platforms, choose `SIGHUP`, `SIGINT`, `SIGQUIT`, `SIGABRT`,
 The JavaScript API accepts the signal as its third argument:
 
 ```js
-const kill = require('kill-port')
+const kill = require('@ngthuc/kill-process')
 kill(3000, 'tcp', 'SIGINT').then(console.log).catch(console.error)
 ```
 
 ```sh
-$ kill-port --signal SIGTERM 3000
-$ kill-port --quiet --signal SIGINT --port 3000-3005
+$ kill-process --signal SIGTERM 3000
+$ kill-process --quiet --signal SIGINT --port 3000-3005
 ```
 
 Signal numbers are resolved using the current platform's Node.js signal constants.
