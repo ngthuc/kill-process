@@ -13,7 +13,8 @@
   "bugs": "https://github.com/ngthuc/kill-process/issues",
   "author": "Lê Nguyên Thức (https://github.com/ngthuc)",
   "contributors": [
-    "Tiaan du Plessis (https://github.com/tiaanduplessis)"
+    "Tiaan du Plessis (https://github.com/tiaanduplessis)",
+    "Claude <noreply@anthropic.com> (https://claude.ai/code)"
   ],
   "bin": {
     "kill-process": "cli.js"
