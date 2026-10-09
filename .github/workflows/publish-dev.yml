@@ -1,6 +1,7 @@
 name: Publish dev build
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - develop
