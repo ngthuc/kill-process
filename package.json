@@ -1,6 +1,6 @@
 {
   "name": "@ngthuc/kill-process",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Kill process running on given port",
   "license": "MIT",
   "main": "index.js",
