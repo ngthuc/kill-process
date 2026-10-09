@@ -91,7 +91,9 @@ try {
     encoding: 'utf8',
     env: { ...process.env, npm_config_pack_destination: temp }
   })
-  const [packed] = JSON.parse(output)
+  // npm <= 11 prints an array; npm 12 prints an object keyed by package name.
+  const parsed = JSON.parse(output)
+  const packed = Array.isArray(parsed) ? parsed[0] : Object.values(parsed)[0]
   const files = declarationsFromTarball(path.join(temp, packed.filename))
   for (const file of packageFiles) assert.deepStrictEqual(files[file], source[file])
   checkConsumer('packed', files)
