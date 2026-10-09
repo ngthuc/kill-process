@@ -10,15 +10,6 @@ on:
       - '**/*.md'
       - 'LICENSE'
       - 'logo.png'
-  pull_request:
-    branches:
-      - master
-    paths-ignore:
-      - '.gitnexus/**'
-      - '.claude/**'
-      - '**/*.md'
-      - 'LICENSE'
-      - 'logo.png'
 
 concurrency:
   group: publish-rc-${{ github.ref }}
@@ -26,8 +17,6 @@ concurrency:
 
 jobs:
   publish:
-    # Pull requests from forks cannot get an OIDC token, so skip them.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     environment: STAGING
     permissions:
@@ -36,8 +25,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - uses: ngthuc/gh-actions-templates/actions/publish-npm@v1
         with:
