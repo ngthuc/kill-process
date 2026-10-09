@@ -50,6 +50,13 @@ jobs:
       - name: Build
         run: ${{ steps.cfg.outputs.build_commands }}
 
+      - name: Diagnose npm token (whoami and scope access)
+        continue-on-error: true
+        run: |
+          echo "Logged in as: $(npm whoami)"
+          npm access list packages @ngthuc || true
+          npm org ls ngthuc || true
+
       - name: Publish 0.0.1 to npm
         working-directory: dist
         run: npm publish --access public --tag bootstrap
