@@ -211,6 +211,13 @@ $ npx @ngthuc/kill-process --port 8080,5000,3000
 $ npx @ngthuc/kill-process 9000 3000 5000
 ```
 
+### Exact port matching
+
+A port is matched exactly: `kill-process 8000` stops only what listens on port
+8000, never `28000`, `8001` or `18000`. Only listening sockets (TCP) or sockets
+bound to that local port (UDP) are selected, so clients that are merely connected
+to the port are left alone.
+
 ### Port ranges
 
 The CLI accepts inclusive, ascending ranges in positional arguments or `--port`:
@@ -255,6 +262,29 @@ Windows continues to use `TaskKill /F` for the default or explicit `SIGKILL`.
 Other signals reject with `Only SIGKILL is supported on Windows`; they are never
 silently replaced by forced termination. `TaskKill` cannot deliver the Unix
 signal semantics requested here.
+
+### Frozen IntelliJ IDEA
+
+When IntelliJ IDEA has crashed or hangs and cannot be quit, close it and start again:
+
+```sh
+$ kill-process intellij
+```
+
+It first asks the IDE to exit (`SIGTERM`), waits up to 5 seconds, then force kills
+(`SIGKILL`) whatever is still running. Options:
+
+```sh
+$ kill-process intellij --dry-run          # only list what would be killed
+$ kill-process intellij --timeout 10       # wait 10 seconds before forcing
+$ kill-process intellij --signal SIGKILL   # send this signal once, no waiting or escalation
+```
+
+Only IntelliJ IDEA processes are targeted; other JetBrains IDEs (PyCharm,
+WebStorm, ...) are left running. Unsaved changes in a killed IDE are lost, so use
+this only when the IDE cannot be closed normally. Process detection on macOS and
+Windows is based on the launcher name rather than the JVM command line; run with
+`--dry-run` first if in doubt. On Windows the IDE is always force terminated.
 
 ## Contributing
 

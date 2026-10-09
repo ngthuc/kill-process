@@ -1,7 +1,7 @@
 {
   "name": "@ngthuc/kill-process",
   "version": "0.0.1",
-  "description": "Kill process running on given port",
+  "description": "Kill the process running on a given port, or a frozen IntelliJ IDEA",
   "license": "MIT",
   "main": "index.js",
   "types": "index.d.ts",
@@ -32,7 +32,8 @@
     "process",
     "kill",
     "kill-port",
-    "kill-process"
+    "kill-process",
+    "intellij"
   ],
   "dependencies": {
     "get-them-args": "1.3.2",
