@@ -122,22 +122,18 @@ server.listen(port, () => {
 ## TypeScript
 
 Type declarations are included with this package; no separate types package is
-needed. When upgrading from `@types/kill-port`, remove it:
-
-```sh
-npm uninstall @types/kill-port
-```
-
-Leaving `@types/kill-port` installed can still cause a `shell-exec` declaration
-error, depending on the installed dependency layout. The bundled declarations
-have no dependency on `shell-exec` types or `@types/node`.
+needed. If you are migrating from `kill-port`, remove `@types/kill-port` as well
+(see [Migrating from kill-port](#migrating-from-kill-port)): leaving it installed
+can still cause a `shell-exec` declaration error, depending on the installed
+dependency layout. The bundled declarations have no dependency on `shell-exec`
+types or `@types/node`.
 
 Use a CommonJS import:
 
 ```ts
-import killPort = require('@ngthuc/kill-process')
+import kill = require('@ngthuc/kill-process')
 
-killPort('3000', 'TCP', 'SIGTERM').then(result => {
+kill('3000', 'TCP', 'SIGTERM').then(result => {
   console.log(result.stdout)
 })
 ```
@@ -145,12 +141,12 @@ killPort('3000', 'TCP', 'SIGTERM').then(result => {
 With `esModuleInterop: true`, a default import also works:
 
 ```ts
-import killPort from '@ngthuc/kill-process'
+import kill from '@ngthuc/kill-process'
 ```
 
 ## API
 
-`killPort(port, protocol?, signal?)` accepts one port as a number or a decimal
+`kill(port, protocol?, signal?)` accepts one port as a number or a decimal
 integer string, including surrounding whitespace. Ports must be between 1 and
 65535; validation happens at runtime. The protocol is case-insensitive `tcp` or
 `udp` and defaults to `tcp`. The signal defaults to `SIGKILL`; see
