@@ -27,21 +27,197 @@
 
 
 ## Table of Contents
-- [Table of Contents](#table-of-contents)
-- [Install](#install)
-- [Usage](#usage)
-- [TypeScript](#typescript)
-- [API](#api)
-- [CLI](#cli)
+- [Quick start](#quick-start)
+  - [Kill a port](#kill-a-port)
+  - [Kill a frozen IntelliJ IDEA](#kill-a-frozen-intellij-idea)
+- [CLI reference](#cli-reference)
+  - [Multiple ports and quiet mode](#multiple-ports-and-quiet-mode)
   - [Exact port matching](#exact-port-matching)
   - [Port ranges](#port-ranges)
   - [Signal selection](#signal-selection)
   - [Frozen IntelliJ IDEA](#frozen-intellij-idea)
+- [Install as a library](#install-as-a-library)
+- [Usage](#usage)
+- [TypeScript](#typescript)
+- [API](#api)
 - [Migrating from kill-port](#migrating-from-kill-port)
 - [Contributing](#contributing)
 - [License](#license)
 
-## Install
+## Quick start
+
+Two things you will most often want, each in two forms: run it once with
+[npx](https://nodejs.dev/learn/the-npx-nodejs-package-runner) (nothing to
+install), or install it globally and use the `kill-process` command.
+
+### Kill a port
+
+Free a port that something is still holding, such as a dev server that did not
+shut down:
+
+```sh
+# Run without installing
+npx -y @ngthuc/kill-process@latest 3000
+
+# Or install globally, then run it anywhere
+npm i -g @ngthuc/kill-process@latest
+kill-process 3000
+```
+
+Put the arguments after `@latest` (npx) or after `kill-process` (global):
+
+| Arguments | What it does |
+|---|---|
+| `3000` | Kill what listens on port 3000 |
+| `3000 8080 5000` or `--port 3000,8080,5000` | Kill several ports |
+| `3000-3005` | Kill a range of ports |
+| `9000 --method udp` | Use UDP instead of TCP |
+| `3000 --signal SIGTERM` | Send another signal (default `SIGKILL`) |
+| `3000 --quiet` | Hide success messages |
+
+A port is matched exactly: `kill-process 8000` never touches `28000`
+([details](#exact-port-matching)). On Linux and macOS this needs the `lsof`
+utility ([Linux and containers](#linux-and-containers)).
+
+### Kill a frozen IntelliJ IDEA
+
+Use it when IntelliJ IDEA has crashed or hung and cannot be quit, so you can
+start it again. It asks the IDE to exit first, then force kills whatever is still
+running after a few seconds:
+
+```sh
+# Run without installing
+npx -y @ngthuc/kill-process@latest intellij
+
+# Or install globally, then run it anywhere
+npm i -g @ngthuc/kill-process@latest
+kill-process intellij
+```
+
+Arguments go after `intellij`:
+
+| Arguments | What it does |
+|---|---|
+| `--dry-run` | Only list what would be killed (run this first if in doubt) |
+| `--timeout 10` | Wait 10 seconds before force killing (default 5) |
+| `--signal SIGKILL` | Send that signal once, with no waiting or escalation |
+
+Unsaved changes in a killed IDE are lost, so use this only when the IDE cannot be
+closed normally. See [Frozen IntelliJ IDEA](#frozen-intellij-idea) for what is
+detected and the platform notes.
+
+## CLI reference
+
+Everything in the [quick start](#quick-start) works with either form; the
+examples below use the installed `kill-process` command. With npx, use
+`npx -y @ngthuc/kill-process@latest` in its place.
+
+### Multiple ports and quiet mode
+
+```sh
+$ kill-process --port 8080
+# OR
+$ kill-process 9000
+# OR you can use UDP
+$ kill-process 9000 --method udp
+```
+
+You can also kill multiple ports:
+
+```sh
+$ kill-process --port 8080,5000,3000
+# OR
+$ kill-process 9000 3000 5000
+```
+
+Use `--quiet` to suppress success messages (including verbose success details).
+Errors are still reported, and exit behavior is unchanged:
+
+```sh
+$ kill-process --quiet 9000
+$ kill-process --port 8080,5000,3000 --quiet
+```
+
+### Exact port matching
+
+A port is matched exactly: `kill-process 8000` stops only what listens on port
+8000, never `28000`, `8001` or `18000`. Only listening sockets (TCP) or sockets
+bound to that local port (UDP) are selected, so clients that are merely connected
+to the port are left alone.
+
+### Port ranges
+
+The CLI accepts inclusive, ascending ranges in positional arguments or `--port`:
+
+```sh
+$ kill-process 3000-3005
+$ kill-process --port 3000-3005
+$ kill-process 3000,4000-4002 5000-5001
+$ kill-process --quiet --port 3000-3005 --method udp
+```
+
+Every port and range endpoint must be an integer between 1 and 65535. Reversed,
+empty, malformed, and out-of-bounds selections are rejected before any processes
+are inspected or terminated, with exit status 1. At most 65535 ports (including
+repeated ports) may be selected in one invocation, and at most four ports are
+processed concurrently. Command failures identify the individual port that failed,
+including within lists and ranges; existing command-failure exit behavior is unchanged. The JavaScript API continues to accept one port at a time.
+
+### Signal selection
+
+On Unix-like platforms, choose `SIGHUP`, `SIGINT`, `SIGQUIT`, `SIGABRT`,
+`SIGKILL`, or `SIGTERM`. Names are case-sensitive; the default is `SIGKILL`.
+The JavaScript API accepts the signal as its third argument:
+
+```js
+const kill = require('@ngthuc/kill-process')
+kill(3000, 'tcp', 'SIGINT').then(console.log).catch(console.error)
+```
+
+```sh
+$ kill-process --signal SIGTERM 3000
+$ kill-process --quiet --signal SIGINT --port 3000-3005
+```
+
+Signal numbers are resolved using the current platform's Node.js signal constants.
+Invalid or unavailable signals reject before any process is inspected or signaled.
+The CLI reports invalid signal selections with exit status 1. A successful
+non-`SIGKILL` request reports that the signal was sent: it does not wait for the
+process to exit or guarantee that it will exit, and never escalates to `SIGKILL`.
+
+Windows continues to use `TaskKill /F` for the default or explicit `SIGKILL`.
+Other signals reject with `Only SIGKILL is supported on Windows`; they are never
+silently replaced by forced termination. `TaskKill` cannot deliver the Unix
+signal semantics requested here.
+
+### Frozen IntelliJ IDEA
+
+When IntelliJ IDEA has crashed or hangs and cannot be quit, close it and start again:
+
+```sh
+$ kill-process intellij
+# OR without installing
+$ npx @ngthuc/kill-process intellij
+```
+
+It first asks the IDE to exit (`SIGTERM`), waits up to 5 seconds, then force kills
+(`SIGKILL`) whatever is still running. Options:
+
+```sh
+$ kill-process intellij --dry-run          # only list what would be killed
+$ kill-process intellij --timeout 10       # wait 10 seconds before forcing
+$ kill-process intellij --signal SIGKILL   # send this signal once, no waiting or escalation
+```
+
+Only IntelliJ IDEA is targeted: the IDE itself plus the helpers it runs from its
+own install directory (`fsnotifier`, the JCEF helpers, ...), which can outlive a
+crashed IDE. Other JetBrains IDEs (PyCharm, WebStorm, ...) and unrelated
+processes are left running. Unsaved changes in a killed IDE are lost, so use
+this only when the IDE cannot be closed normally. Process detection on macOS and
+Windows is based on the launcher name rather than the JVM command line; run with
+`--dry-run` first if in doubt. On Windows the IDE is always force terminated.
+
+## Install as a library
 
 
 With `npm`:
@@ -157,136 +333,6 @@ result. `stdout`, `stderr`, and `cmd` are strings, `code` is `0`, and `error` is
 absent or `undefined`. Invalid inputs, missing processes, and failed commands
 reject the promise. A successful signal request does not guarantee the target
 process has exited.
-
-## CLI
-
-You can use `kill-process` as a global package.
-
-Install the package globally:
-
-```sh
-$ npm install --global @ngthuc/kill-process
-# OR
-$ yarn global add @ngthuc/kill-process
-```
-
-Then:
-
-```sh
-$ kill-process --port 8080
-# OR
-$ kill-process 9000
-# OR you can use UDP
-$ kill-process 9000 --method udp
-```
-
-You can also kill multiple ports:
-
-```sh
-$ kill-process --port 8080,5000,3000
-# OR
-$ kill-process 9000 3000 5000
-```
-
-Use `--quiet` to suppress success messages (including verbose success details).
-Errors are still reported, and exit behavior is unchanged:
-
-```sh
-$ kill-process --quiet 9000
-$ kill-process --port 8080,5000,3000 --quiet
-```
-
-You can also use [npx](https://nodejs.dev/learn/the-npx-nodejs-package-runner) to `kill-process` without installing:
-
-```sh
-# Kill a single port
-$ npx @ngthuc/kill-process --port 8080
-$ npx @ngthuc/kill-process 8080
-# Use UDP
-$ npx @ngthuc/kill-process 9000 --method udp
-# Kill multiple ports
-$ npx @ngthuc/kill-process --port 8080,5000,3000
-$ npx @ngthuc/kill-process 9000 3000 5000
-```
-
-### Exact port matching
-
-A port is matched exactly: `kill-process 8000` stops only what listens on port
-8000, never `28000`, `8001` or `18000`. Only listening sockets (TCP) or sockets
-bound to that local port (UDP) are selected, so clients that are merely connected
-to the port are left alone.
-
-### Port ranges
-
-The CLI accepts inclusive, ascending ranges in positional arguments or `--port`:
-
-```sh
-$ kill-process 3000-3005
-$ kill-process --port 3000-3005
-$ kill-process 3000,4000-4002 5000-5001
-$ kill-process --quiet --port 3000-3005 --method udp
-```
-
-Every port and range endpoint must be an integer between 1 and 65535. Reversed,
-empty, malformed, and out-of-bounds selections are rejected before any processes
-are inspected or terminated, with exit status 1. At most 65535 ports (including
-repeated ports) may be selected in one invocation, and at most four ports are
-processed concurrently. Command failures identify the individual port that failed,
-including within lists and ranges; existing command-failure exit behavior is unchanged. The JavaScript API continues to accept one port at a time.
-
-### Signal selection
-
-On Unix-like platforms, choose `SIGHUP`, `SIGINT`, `SIGQUIT`, `SIGABRT`,
-`SIGKILL`, or `SIGTERM`. Names are case-sensitive; the default is `SIGKILL`.
-The JavaScript API accepts the signal as its third argument:
-
-```js
-const kill = require('@ngthuc/kill-process')
-kill(3000, 'tcp', 'SIGINT').then(console.log).catch(console.error)
-```
-
-```sh
-$ kill-process --signal SIGTERM 3000
-$ kill-process --quiet --signal SIGINT --port 3000-3005
-```
-
-Signal numbers are resolved using the current platform's Node.js signal constants.
-Invalid or unavailable signals reject before any process is inspected or signaled.
-The CLI reports invalid signal selections with exit status 1. A successful
-non-`SIGKILL` request reports that the signal was sent: it does not wait for the
-process to exit or guarantee that it will exit, and never escalates to `SIGKILL`.
-
-Windows continues to use `TaskKill /F` for the default or explicit `SIGKILL`.
-Other signals reject with `Only SIGKILL is supported on Windows`; they are never
-silently replaced by forced termination. `TaskKill` cannot deliver the Unix
-signal semantics requested here.
-
-### Frozen IntelliJ IDEA
-
-When IntelliJ IDEA has crashed or hangs and cannot be quit, close it and start again:
-
-```sh
-$ kill-process intellij
-# OR without installing
-$ npx @ngthuc/kill-process intellij
-```
-
-It first asks the IDE to exit (`SIGTERM`), waits up to 5 seconds, then force kills
-(`SIGKILL`) whatever is still running. Options:
-
-```sh
-$ kill-process intellij --dry-run          # only list what would be killed
-$ kill-process intellij --timeout 10       # wait 10 seconds before forcing
-$ kill-process intellij --signal SIGKILL   # send this signal once, no waiting or escalation
-```
-
-Only IntelliJ IDEA is targeted: the IDE itself plus the helpers it runs from its
-own install directory (`fsnotifier`, the JCEF helpers, ...), which can outlive a
-crashed IDE. Other JetBrains IDEs (PyCharm, WebStorm, ...) and unrelated
-processes are left running. Unsaved changes in a killed IDE are lost, so use
-this only when the IDE cannot be closed normally. Process detection on macOS and
-Windows is based on the launcher name rather than the JVM command line; run with
-`--dry-run` first if in doubt. On Windows the IDE is always force terminated.
 
 ## Migrating from kill-port
 
