@@ -27,154 +27,92 @@
 
 
 ## Table of Contents
-- [Table of Contents](#table-of-contents)
-- [Install](#install)
-- [Usage](#usage)
-- [TypeScript](#typescript)
-- [API](#api)
-- [CLI](#cli)
+- [Quick start](#quick-start)
+  - [Kill a port](#kill-a-port)
+  - [Kill a frozen IntelliJ IDEA](#kill-a-frozen-intellij-idea)
+- [CLI reference](#cli-reference)
+  - [Multiple ports and quiet mode](#multiple-ports-and-quiet-mode)
   - [Exact port matching](#exact-port-matching)
   - [Port ranges](#port-ranges)
   - [Signal selection](#signal-selection)
   - [Frozen IntelliJ IDEA](#frozen-intellij-idea)
+- [Install as a library](#install-as-a-library)
+- [Usage](#usage)
+- [TypeScript](#typescript)
+- [API](#api)
 - [Migrating from kill-port](#migrating-from-kill-port)
 - [Contributing](#contributing)
 - [License](#license)
 
-## Install
+## Quick start
 
+Two things you will most often want, each in two forms: run it once with
+[npx](https://nodejs.dev/learn/the-npx-nodejs-package-runner) (nothing to
+install), or install it globally and use the `kill-process` command.
 
-With `npm`:
-```sh
-npm install --save @ngthuc/kill-process
-```
+### Kill a port
 
-With `yarn`:
-```sh
-yarn add @ngthuc/kill-process
-```
-
-With `pnpm`:
-```sh
-pnpm add @ngthuc/kill-process
-```
-
-### Linux and containers
-
-The Unix implementation requires the full [lsof](https://github.com/lsof-org/lsof)
-utility on `PATH`, with support for `-nP` and `-i` and its standard network
-output. Minimal Linux images may omit it. The BusyBox `lsof` applet uses a
-different output format and is not a compatible replacement.
-
-For an existing kill-process installation or source checkout, add your distribution's
-`lsof` package to the image that runs it. For example, in an Alpine Dockerfile:
-
-```dockerfile
-RUN apk add --no-cache lsof
-```
-
-Installing the utility on the host does not make it available inside a container.
-The caller must be able to inspect and signal the target process within its
-process and network namespaces. Process ownership and permissions can limit what
-`lsof` can see.
-
-If a call fails:
-
-- A missing `lsof` command or another command failure rejects the API promise;
-  the CLI reports the command error.
-- `No process running on port` means no matching process was found in the
-  command output. It can also occur with incompatible `lsof` output or when
-  process visibility is restricted; it does not prove the port is unused.
-- The Unix implementation selects TCP listeners on the exact local port. UDP
-  selection includes connected sockets whose local port matches. Remote ports
-  and established TCP connections without a matching listener are not selected.
-- An unused port rejects the API promise. CLI `--quiet` suppresses success
-  messages only; errors remain visible.
-
-## Usage
-
-```js
-
-const kill = require('@ngthuc/kill-process')
-const http = require('http')
-const port = 8080
-
-const server = http.createServer((req, res) => {
-  res.writeHead(200, {
-    'Content-Type': 'text/plain'
-  })
-
-  res.end('Hi!')
-})
-
-server.listen(port, () => {
-  setTimeout(() => {
-    
-    // Currently you can kill ports running on TCP or UDP protocols
-    kill(port, 'tcp')
-      .then(console.log)
-      .catch(console.log)
-  }, 1000)
-})
-
-```
-
-## TypeScript
-
-Type declarations are included with this package; no separate types package is
-needed. When upgrading from `@types/kill-port`, remove it:
+Free a port that something is still holding, such as a dev server that did not
+shut down:
 
 ```sh
-npm uninstall @types/kill-port
+# Run without installing
+npx -y @ngthuc/kill-process@latest 3000
+
+# Or install globally, then run it anywhere
+npm i -g @ngthuc/kill-process@latest
+kill-process 3000
 ```
 
-Leaving `@types/kill-port` installed can still cause a `shell-exec` declaration
-error, depending on the installed dependency layout. The bundled declarations
-have no dependency on `shell-exec` types or `@types/node`.
+Put the arguments after `@latest` (npx) or after `kill-process` (global):
 
-Use a CommonJS import:
+| Arguments | What it does |
+|---|---|
+| `3000` | Kill what listens on port 3000 |
+| `3000 8080 5000` or `--port 3000,8080,5000` | Kill several ports |
+| `3000-3005` | Kill a range of ports |
+| `9000 --method udp` | Use UDP instead of TCP |
+| `3000 --signal SIGTERM` | Send another signal (default `SIGKILL`) |
+| `3000 --quiet` | Hide success messages |
 
-```ts
-import killPort = require('@ngthuc/kill-process')
+A port is matched exactly: `kill-process 8000` never touches `28000`
+([details](#exact-port-matching)). On Linux and macOS this needs the `lsof`
+utility ([Linux and containers](#linux-and-containers)).
 
-killPort('3000', 'TCP', 'SIGTERM').then(result => {
-  console.log(result.stdout)
-})
-```
+### Kill a frozen IntelliJ IDEA
 
-With `esModuleInterop: true`, a default import also works:
-
-```ts
-import killPort from '@ngthuc/kill-process'
-```
-
-## API
-
-`killPort(port, protocol?, signal?)` accepts one port as a number or a decimal
-integer string, including surrounding whitespace. Ports must be between 1 and
-65535; validation happens at runtime. The protocol is case-insensitive `tcp` or
-`udp` and defaults to `tcp`. The signal defaults to `SIGKILL`; see
-[signal selection](#signal-selection) for supported signals and platform limits.
-
-The promise resolves with the final command's `{ stdout, stderr, cmd, code }`
-result. `stdout`, `stderr`, and `cmd` are strings, `code` is `0`, and `error` is
-absent or `undefined`. Invalid inputs, missing processes, and failed commands
-reject the promise. A successful signal request does not guarantee the target
-process has exited.
-
-## CLI
-
-You can use `kill-process` as a global package.
-
-Install the package globally:
+Use it when IntelliJ IDEA has crashed or hung and cannot be quit, so you can
+start it again. It asks the IDE to exit first, then force kills whatever is still
+running after a few seconds:
 
 ```sh
-$ npm install --global @ngthuc/kill-process
-# OR
-$ yarn global add @ngthuc/kill-process
+# Run without installing
+npx -y @ngthuc/kill-process@latest intellij
+
+# Or install globally, then run it anywhere
+npm i -g @ngthuc/kill-process@latest
+kill-process intellij
 ```
 
-Then:
+Arguments go after `intellij`:
+
+| Arguments | What it does |
+|---|---|
+| `--dry-run` | Only list what would be killed (run this first if in doubt) |
+| `--timeout 10` | Wait 10 seconds before force killing (default 5) |
+| `--signal SIGKILL` | Send that signal once, with no waiting or escalation |
+
+Unsaved changes in a killed IDE are lost, so use this only when the IDE cannot be
+closed normally. See [Frozen IntelliJ IDEA](#frozen-intellij-idea) for what is
+detected and the platform notes.
+
+## CLI reference
+
+Everything in the [quick start](#quick-start) works with either form; the
+examples below use the installed `kill-process` command. With npx, use
+`npx -y @ngthuc/kill-process@latest` in its place.
+
+### Multiple ports and quiet mode
 
 ```sh
 $ kill-process --port 8080
@@ -198,19 +136,6 @@ Errors are still reported, and exit behavior is unchanged:
 ```sh
 $ kill-process --quiet 9000
 $ kill-process --port 8080,5000,3000 --quiet
-```
-
-You can also use [npx](https://nodejs.dev/learn/the-npx-nodejs-package-runner) to `kill-process` without installing:
-
-```sh
-# Kill a single port
-$ npx @ngthuc/kill-process --port 8080
-$ npx @ngthuc/kill-process 8080
-# Use UDP
-$ npx @ngthuc/kill-process 9000 --method udp
-# Kill multiple ports
-$ npx @ngthuc/kill-process --port 8080,5000,3000
-$ npx @ngthuc/kill-process 9000 3000 5000
 ```
 
 ### Exact port matching
@@ -291,6 +216,123 @@ processes are left running. Unsaved changes in a killed IDE are lost, so use
 this only when the IDE cannot be closed normally. Process detection on macOS and
 Windows is based on the launcher name rather than the JVM command line; run with
 `--dry-run` first if in doubt. On Windows the IDE is always force terminated.
+
+## Install as a library
+
+
+With `npm`:
+```sh
+npm install --save @ngthuc/kill-process
+```
+
+With `yarn`:
+```sh
+yarn add @ngthuc/kill-process
+```
+
+With `pnpm`:
+```sh
+pnpm add @ngthuc/kill-process
+```
+
+### Linux and containers
+
+The Unix implementation requires the full [lsof](https://github.com/lsof-org/lsof)
+utility on `PATH`, with support for `-nP` and `-i` and its standard network
+output. Minimal Linux images may omit it. The BusyBox `lsof` applet uses a
+different output format and is not a compatible replacement.
+
+For an existing kill-process installation or source checkout, add your distribution's
+`lsof` package to the image that runs it. For example, in an Alpine Dockerfile:
+
+```dockerfile
+RUN apk add --no-cache lsof
+```
+
+Installing the utility on the host does not make it available inside a container.
+The caller must be able to inspect and signal the target process within its
+process and network namespaces. Process ownership and permissions can limit what
+`lsof` can see.
+
+If a call fails:
+
+- A missing `lsof` command or another command failure rejects the API promise;
+  the CLI reports the command error.
+- `No process running on port` means no matching process was found in the
+  command output. It can also occur with incompatible `lsof` output or when
+  process visibility is restricted; it does not prove the port is unused.
+- The Unix implementation selects TCP listeners on the exact local port. UDP
+  selection includes connected sockets whose local port matches. Remote ports
+  and established TCP connections without a matching listener are not selected.
+- An unused port rejects the API promise. CLI `--quiet` suppresses success
+  messages only; errors remain visible.
+
+## Usage
+
+```js
+
+const kill = require('@ngthuc/kill-process')
+const http = require('http')
+const port = 8080
+
+const server = http.createServer((req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/plain'
+  })
+
+  res.end('Hi!')
+})
+
+server.listen(port, () => {
+  setTimeout(() => {
+    
+    // Currently you can kill ports running on TCP or UDP protocols
+    kill(port, 'tcp')
+      .then(console.log)
+      .catch(console.log)
+  }, 1000)
+})
+
+```
+
+## TypeScript
+
+Type declarations are included with this package; no separate types package is
+needed. If you are migrating from `kill-port`, remove `@types/kill-port` as well
+(see [Migrating from kill-port](#migrating-from-kill-port)): leaving it installed
+can still cause a `shell-exec` declaration error, depending on the installed
+dependency layout. The bundled declarations have no dependency on `shell-exec`
+types or `@types/node`.
+
+Use a CommonJS import:
+
+```ts
+import kill = require('@ngthuc/kill-process')
+
+kill('3000', 'TCP', 'SIGTERM').then(result => {
+  console.log(result.stdout)
+})
+```
+
+With `esModuleInterop: true`, a default import also works:
+
+```ts
+import kill from '@ngthuc/kill-process'
+```
+
+## API
+
+`kill(port, protocol?, signal?)` accepts one port as a number or a decimal
+integer string, including surrounding whitespace. Ports must be between 1 and
+65535; validation happens at runtime. The protocol is case-insensitive `tcp` or
+`udp` and defaults to `tcp`. The signal defaults to `SIGKILL`; see
+[signal selection](#signal-selection) for supported signals and platform limits.
+
+The promise resolves with the final command's `{ stdout, stderr, cmd, code }`
+result. `stdout`, `stderr`, and `cmd` are strings, `code` is `0`, and `error` is
+absent or `undefined`. Invalid inputs, missing processes, and failed commands
+reject the promise. A successful signal request does not guarantee the target
+process has exited.
 
 ## Migrating from kill-port
 
